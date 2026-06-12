@@ -86,7 +86,10 @@ tmp/
 
 # Large checkpoints (distributed separately, not in git)
 checkpoint/
-network/xception-b5690688.pth
+network/
+
+# Local inference examples / outputs
+output/
 
 # Environments
 .env

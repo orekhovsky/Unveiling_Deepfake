@@ -20,6 +20,18 @@ uv pip install -r requirements.txt --python .venv \
 
 Системная зависимость для видео-оверлея: **ffmpeg** (`sudo apt install ffmpeg`).
 
+Чекпоинт детектора (`checkpoint/epoch_45_model.pt`) в git не входит — положите файл вручную перед запуском.
+
+## Структура репозитория
+
+```
+Inference.py              # точка входа
+SCRFD/nets/nn.py          # детектор лиц
+SCRFD/weights/model_1.onnx
+checkpoint/epoch_45_model.pt   # нужно поместить чекпоинт сюда
+pyproject.toml / uv.lock  # окружение
+```
+
 ## Быстрый старт
 
 ```bash
