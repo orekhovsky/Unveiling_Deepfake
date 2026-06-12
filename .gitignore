@@ -81,6 +81,13 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
+# Inference temp frames
+tmp/
+
+# Large checkpoints (distributed separately, not in git)
+checkpoint/
+network/xception-b5690688.pth
+
 # Environments
 .env
 .venv

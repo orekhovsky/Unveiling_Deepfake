@@ -1,47 +1,69 @@
-# Unveiling Deepfakes: A Frequency-Aware Triple Branch Network for Deepfake Detection
+# Inference — deepfake detection
 
-![framework](https://github.com/injooker/Unveiling_Deepfake/blob/master/framework.png?raw=true)
+Скрипт `Inference.py`: детекция лица (SCRFD) → кроп → классификатор real/fake (TorchScript Xception).
 
-## Dependencies
+## Установка
 
-    pip install -r requirements.txt
-
-## Data Preparation
-
-1. Download the original dataset from [FF++](https://github.com/ondyari/FaceForensics).
-   
-   <!---2. Download the landmark detector from [here](https://github.com/codeniko/shape_predictor_81_face_landmarks).-->
-
-2. Extract frames from FF++ videos.
-
-3. Run the code in folder *./process* to get the aligned images and masks.
-
-## Pretrained Model
-
-You can download the pretrained **Xception** weights from here:
-
-- [xception-b5690688.pth](https://data.lip6.fr/cadene/pretrainedmodels/xception-b5690688.pth)  (ImageNet pretrained)
-
-Put the file into the `network/` folder before training or testing.
-
-## Results
-
-Our model achieved the following performance on:
-
-| Training Data | Backbone | FF++  | Celeb-DF2 | Celeb-DF |
-| ------------- | -------- | ----- | --------- | -------- |
-| FF++          | Xception | 0.990 | 0.872     | 0.796    |
-
-| Training Data | Backbone | Celeb-DF2 |
-| ------------- | -------- | --------- | 
-| Celeb-DF2     | Xception |   0.999   |
-
-Note: the metric is *frame-level AUC*.
-
-## Training
-
-To train our model from scratch, please run:
+Нужны **uv** (≥0.9) и **Python 3.10**. Зависимости зафиксированы в `uv.lock`.
 
 ```bash
-python3 train.py --train_list /path/to/your/trainset --var_list /path/to/your/varset
+uv sync --frozen    # создаёт .venv и ставит пакеты
+source .venv/bin/activate
+```
 
+Альтернатива:
+
+```bash
+uv pip install -r requirements.txt --python .venv \
+  --extra-index-url https://download.pytorch.org/whl/cu124
+```
+
+Системная зависимость для видео-оверлея: **ffmpeg** (`sudo apt install ffmpeg`).
+
+## Быстрый старт
+
+```bash
+source .venv/bin/activate
+
+# Фото — JSON в stdout
+CUDA_VISIBLE_DEVICES=0 python Inference.py /path/to/image.jpg
+
+# Видео с оверлеем
+CUDA_VISIBLE_DEVICES=0 python Inference.py /path/to/video.mp4 --overlay
+```
+
+## Параметры `Inference.py`
+
+| Флаг | Тип | По умолчанию | Описание |
+|------|-----|--------------|----------|
+| `input` | path | — | Путь к изображению или видео (обязательный позиционный аргумент) |
+| `--checkpoint` | path | `checkpoint/epoch_45_model.pt` | TorchScript-модель детектора (`.pt`) |
+| `--scrfd-model` | path | `SCRFD/weights/model_1.onnx` | SCRFD ONNX для детекции лица |
+| `--overlay` | flag | выкл. | Нарисовать bbox и подпись real/fake; сохранить файл |
+| `--output` | path | `None` | Путь для оверлея; без флага — `<имя>_overlay.<ext>` рядом с входом |
+| `--device` | `cuda` \| `cpu` | `cuda` | Устройство для детектора; при отсутствии GPU — CPU |
+| `--bbox-scale` | float | **1.0** | Масштаб квадратного кропа: `side = max(w, h) × scale`. Должен совпадать с обучением |
+| `--min-size` | int | `380` | Если меньшая сторона кропа &lt; min-size — апскейл до `min-size×min-size`; иначе без ресайза |
+| `--scrfd-thresh` | float | `0.5` | Порог уверенности SCRFD |
+| `--scrfd-input-size` | int int | `640 640` | Размер входа SCRFD (ширина высота) |
+| `--keep-tmp` | flag | выкл. | Не удалять кадры видео из `tmp/` |
+| `--json-out` | path | `None` | Дополнительно сохранить JSON с результатом в файл |
+
+## Вывод
+
+- **stdout** — JSON: `label` (`real` / `fake`), `fake_prob`, `confidence`, по кадрам для видео.
+- **stderr** — `Saved overlay: ...` при `--overlay`.
+- Цвет рамки: зелёный = real, красный = fake.
+
+## Примеры
+
+```bash
+
+# Свой чекпоинт и JSON на диск
+python Inference.py clip.mp4 \
+  --checkpoint checkpoint/epoch_45_model.pt \
+  --json-out results/clip.json
+
+# Оверлей в заданный путь
+python Inference.py clip.mp4 --overlay --output output/clip_overlay.mp4
+```
