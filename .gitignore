@@ -89,7 +89,7 @@ checkpoint/
 network/
 
 # Local inference examples / outputs
-output/
+# output/
 
 # Environments
 .env
